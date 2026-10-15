@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-DỰ ÁN HỌC MÁY: XÂY DỰNG VÀ ĐÁNH GIÁ 5 MÔ HÌNH HỌC MÁY
+DỰ ÁN HỌC MÁY: XÂY DỰNG VÀ ĐÁNH GIÁ 7 MÔ HÌNH HỌC MÁY
 Dự đoán ý định mua hàng của khách truy cập (Online Shoppers Purchasing Intention)
 
 Quy trình chuẩn bao gồm:
 1. Đọc và khám phá dữ liệu (EDA)
 2. Tiền xử lý dữ liệu (Xử lý trùng lặp, One-Hot Encoding, Train/Test Split, Feature Scaling)
-3. Huấn luyện và đánh giá 5 mô hình máy học:
+3. Huấn luyện và đánh giá 7 mô hình máy học:
    - Logistic Regression
    - K-Nearest Neighbors (KNN)
    - Decision Tree
    - Random Forest
    - Support Vector Machine (SVM)
+   - Naive Bayes (Gaussian)
+   - AdaBoost (Adaptive Boosting)
 4. So sánh tổng hợp hiệu năng và lưu kết quả/biểu đồ
 """
 
@@ -51,8 +53,9 @@ from sklearn.metrics import (
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier, plot_tree
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
 
 # Tạo thư mục lưu biểu đồ
 OUTPUT_DIR = "output_plots"
@@ -64,7 +67,7 @@ plt.rcParams['font.size'] = 11
 
 def main():
     print("=" * 75)
-    print(" BẮT ĐẦU QUY TRÌNH HUẤN LUYỆN VÀ ĐÁNH GIÁ 5 MÔ HÌNH HỌC MÁY ")
+    print(" BẮT ĐẦU QUY TRÌNH HUẤN LUYỆN VÀ ĐÁNH GIÁ 7 MÔ HÌNH HỌC MÁY ")
     print("=" * 75)
 
     # -------------------------------------------------------------
@@ -144,9 +147,9 @@ def main():
     print("- Đã chuẩn hóa dữ liệu bằng StandardScaler (fit trên Train, transform trên Test).")
 
     # -------------------------------------------------------------
-    # BƯỚC 3: XÂY DỰNG & HUẤN LUYỆN 5 MÔ HÌNH HỌC MÁY
+    # BƯỚC 3: XÂY DỰNG & HUẤN LUYỆN 7 MÔ HÌNH HỌC MÁY
     # -------------------------------------------------------------
-    print("\n[BƯỚC 3] Khởi tạo và huấn luyện 5 mô hình học máy...")
+    print("\n[BƯỚC 3] Khởi tạo và huấn luyện 7 mô hình học máy...")
 
     models = {
         'Logistic Regression': {
@@ -173,6 +176,33 @@ def main():
             'instance': SVC(C=1.0, kernel='rbf', gamma='scale', probability=True, random_state=42),
             'use_scaled': True,
             'desc': 'Máy vector hỗ trợ với RBF Kernel phi tuyến'
+        },
+        # ===== MÔ HÌNH 6: NAIVE BAYES (GAUSSIAN) =====
+        # Lý thuyết: Dùng Định lý Bayes  P(Y|X) = P(X|Y) × P(Y) / P(X)
+        # "Naive" = giả định các đặc trưng ĐỘC LẬP với nhau
+        # "Gaussian" = giả định mỗi đặc trưng tuân theo phân phối chuẩn (Normal Distribution)
+        # var_smoothing: thêm một lượng nhỏ (1e-9) vào phương sai để tránh lỗi chia cho 0
+        'Naive Bayes': {
+            'instance': GaussianNB(var_smoothing=1e-9),
+            'use_scaled': False,  # Naive Bayes tự tính mean/variance cho từng đặc trưng, KHÔNG cần chuẩn hóa
+            'desc': 'Phân loại Bayes Gaussian với giả định đặc trưng độc lập'
+        },
+        # ===== MÔ HÌNH 7: ADABOOST (ADAPTIVE BOOSTING) =====
+        # Lý thuyết: Kết hợp nhiều mô hình YẾU (weak learner) thành mô hình MẠNH
+        # Mỗi vòng: train 1 Decision Stump → tìm mẫu SAI → TĂNG trọng số mẫu SAI
+        # → Vòng sau sẽ TẬP TRUNG hơn vào các mẫu khó phân loại
+        # estimator: Decision Stump (cây quyết định chỉ có 1 nút, max_depth=1)
+        # n_estimators=100: kết hợp 100 Decision Stump
+        # learning_rate=0.5: tốc độ học (nhỏ hơn = ổn định hơn, nhưng cần nhiều vòng hơn)
+        'AdaBoost': {
+            'instance': AdaBoostClassifier(
+                estimator=DecisionTreeClassifier(max_depth=1),  # Decision Stump (cây 1 nút)
+                n_estimators=100,       # Số lượng mô hình yếu
+                learning_rate=0.5,      # Tốc độ học
+                random_state=42         # Đảm bảo kết quả tái lập được
+            ),
+            'use_scaled': False,  # Tree-based → không cần chuẩn hóa dữ liệu
+            'desc': 'Ensemble Boosting kết hợp 100 Decision Stump'
         }
     }
 
@@ -241,13 +271,15 @@ def main():
     print(f"  -> Đã lưu biểu đồ: {OUTPUT_DIR}/04_rf_feature_importance.png")
 
     # Ma trận nhầm lẫn tổng hợp cho cả 5 mô hình
-    fig, axes = plt.subplots(1, 5, figsize=(22, 4))
+    fig, axes = plt.subplots(2, 4, figsize=(24, 8))  # 2 hàng × 4 cột = 8 ô (dùng 7, ẩn 1)
+    axes_flat = axes.flatten()  # Chuyển mảng 2D thành 1D để dễ duyệt bằng index
     for idx, (name, res) in enumerate(results.items()):
         cm = confusion_matrix(y_test, res['y_pred'])
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=axes[idx], cbar=False,
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=axes_flat[idx], cbar=False,
                     xticklabels=['Pred 0', 'Pred 1'], yticklabels=['True 0', 'True 1'])
-        axes[idx].set_title(f"{name}", fontsize=11, fontweight='bold')
-    plt.suptitle('So Sánh Ma Trận Nhầm Lẫn (Confusion Matrix) Của 5 Mô Hình', fontsize=14, fontweight='bold', y=1.05)
+        axes_flat[idx].set_title(f"{name}", fontsize=11, fontweight='bold')
+    axes_flat[-1].set_visible(False)  # Ẩn ô thứ 8 (chỉ có 7 mô hình, không cần ô cuối)
+    plt.suptitle('So Sánh Ma Trận Nhầm Lẫn (Confusion Matrix) Của 7 Mô Hình', fontsize=14, fontweight='bold', y=1.02)
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, '05_all_confusion_matrices.png'), dpi=200)
     plt.close()
@@ -255,7 +287,7 @@ def main():
 
     # Đường cong ROC gộp
     plt.figure(figsize=(10, 7))
-    colors = ['#3498DB', '#9B59B6', '#E67E22', '#2ECC71', '#E74C3C']
+    colors = ['#3498DB', '#9B59B6', '#E67E22', '#2ECC71', '#E74C3C', '#F39C12', '#1ABC9C']  # 7 màu cho 7 mô hình
     for (name, res), color in zip(results.items(), colors):
         if res['y_prob'] is not None:
             fpr, tpr, _ = roc_curve(y_test, res['y_prob'])
@@ -265,7 +297,7 @@ def main():
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate (FPR)')
     plt.ylabel('True Positive Rate (TPR / Recall)')
-    plt.title('Đường Cong ROC Gộp Cả 5 Mô Hình Học Máy', fontsize=13, fontweight='bold')
+    plt.title('Đường Cong ROC Gộp Cả 7 Mô Hình Học Máy', fontsize=13, fontweight='bold')
     plt.legend(loc='lower right')
     plt.tight_layout()
     plt.savefig(os.path.join(OUTPUT_DIR, '06_combined_roc_curves.png'), dpi=200)
@@ -276,7 +308,7 @@ def main():
     # BƯỚC 5: TỔNG HỢP VÀ KẾT LUẬN
     # -------------------------------------------------------------
     print("\n" + "=" * 75)
-    print(" BẢNG TỔNG HỢP SO SÁNH HIỆU NĂNG 5 MÔ HÌNH HỌC MÁY ")
+    print(" BẢNG TỔNG HỢP SO SÁNH HIỆU NĂNG 7 MÔ HÌNH HỌC MÁY ")
     print("=" * 75)
 
     summary_list = []
@@ -302,9 +334,10 @@ def main():
     # Vẽ biểu đồ so sánh các chỉ số
     plot_df = summary_df.melt(id_vars='Model', value_vars=['Accuracy (%)', 'Precision (%)', 'Recall (%)', 'F1-Score (%)'],
                               var_name='Metric', value_name='Score (%)')
-    plt.figure(figsize=(14, 6))
+    plt.figure(figsize=(16, 7))  # Tăng kích thước để chứa 7 mô hình
     chart = sns.barplot(x='Model', y='Score (%)', hue='Metric', data=plot_df, palette='Spectral')
-    plt.title('So Sánh Các Chỉ Số Hiệu Năng Giữa 5 Mô Hình Máy Học', fontsize=14, fontweight='bold')
+    plt.title('So Sánh Các Chỉ Số Hiệu Năng Giữa 7 Mô Hình Máy Học', fontsize=14, fontweight='bold')
+    plt.xticks(rotation=15, ha='right')  # Xoay nhãn trục X để không bị chồng chéo
     plt.ylabel('Điểm số (%)')
     plt.ylim(0, 105)
     plt.legend(title='Chỉ số', bbox_to_anchor=(1.02, 1), loc='upper left')

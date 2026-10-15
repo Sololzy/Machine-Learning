@@ -1,6 +1,8 @@
 ﻿Model,Accuracy (%),Precision (%),Recall (%),F1-Score (%),ROC-AUC,Train Time (s)
-Decision Tree,90.21,70.85,63.61,67.03,0.9256,0.031
-Random Forest,89.92,80.09,47.38,59.54,0.9292,0.1492
-Logistic Regression,88.78,75.47,41.88,53.87,0.8981,0.016
-Support Vector Machine,88.9,77.61,40.84,53.52,0.8781,6.4601
-K-Nearest Neighbors,85.54,62.61,18.85,28.97,0.7165,0.002
+Decision Tree,90.21,70.85,63.61,67.03,0.9256,0.0344
+AdaBoost,89.8,68.84,63.61,66.12,0.9241,0.8349
+Random Forest,89.92,80.09,47.38,59.54,0.9292,0.1978
+Logistic Regression,88.78,75.47,41.88,53.87,0.8981,0.0257
+Support Vector Machine,88.9,77.61,40.84,53.52,0.8781,8.9609
+Naive Bayes,74.85,34.82,69.63,46.42,0.7985,0.0069
+K-Nearest Neighbors,85.54,62.61,18.85,28.97,0.7165,0.0021
